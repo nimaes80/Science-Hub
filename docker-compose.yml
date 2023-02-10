@@ -1,0 +1,175 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15.1-alpine
+    restart: unless-stopped
+    container_name: ${PROJECT_NAME}-db
+    hostname: ${PROJECT_NAME}-db
+    command: [ "-c", "shared_buffers=1GB" ]
+    environment:
+      POSTGRES_PASSWORD : ${DB_PASSWORD}
+      POSTGRES_USER : ${DB_USER}
+      POSTGRES_DB : ${DB_NAME} 
+    volumes:
+      - ./volumes/db/data:/var/lib/postgresql/data:rw
+      - ./volumes/db/log:/var/log/postgresql:rw
+    # expose:
+    #   - ${DB_PORT}
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+    networks:
+      web:
+
+  broker:
+    image: redis:7.0-alpine
+    restart: unless-stopped
+    container_name: ${PROJECT_NAME}-broker
+    hostname: ${PROJECT_NAME}-broker
+    volumes:
+      - ./volumes/broker/conf/:/usr/local/etc/redis:rw
+    # expose:
+    #   - 6379
+    ports:
+      - 6379:6379
+    networks:
+      web:
+
+  # backend:
+  #   container_name: "${PROJECT_NAME}-backend"
+  #   hostname: "${PROJECT_NAME}-backend"
+  #   # command: gunicorn core.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+  #   environment:
+  #     PROJECT_NAME : ${PROJECT_NAME}
+  #     SECRET_KEY : ${SECRET_KEY}
+  #     DEBUG : ${DEBUG}
+  #     ALLOWED_HOSTS : ${ALLOWED_HOSTS}
+  #     EMAIL_HOST : ${EMAIL_HOST}
+  #     EMAIL_USE_SSL : ${EMAIL_USE_SSL}
+  #     EMAIL_PORT : ${EMAIL_PORT}
+  #     EMAIL_HOST_USER : ${EMAIL_HOST_USER}
+  #     EMAIL_HOST_PASSWORD : ${EMAIL_HOST_PASSWORD}
+  #     DEFAULT_FROM_EMAIL : ${DEFAULT_FROM_EMAIL}
+  #     ADMINS : ${ADMINS}
+  #     DB_USER : ${DB_USER}
+  #     DB_NAME : ${DB_NAME}
+  #     DB_PASSWORD : ${DB_PASSWORD}
+  #     DB_HOST : ${DB_HOST}
+  #     DB_PORT : ${DB_PORT}
+  #     DB : ${DB}
+  #     SIGNING_KEY : ${SIGNING_KEY}
+  #     TOKEN : ${TOKEN}
+  #     HTTP_PROXY : ${HTTP_PROXY}
+  #   tty: true
+  #   build:
+  #     dockerfile: ./DockerFiles/python.dockerfile
+  #     context: .
+  #     args:
+  #       USER_ID : ${USER_ID}
+  #       GROUP_ID : $GROUP_ID}
+  #       USER_NAME : ${USER_NAME}
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./backend:/app:rw
+  #     - static-files:/app/static:rw
+  #     - media-files:/app/media/public:rw
+      
+
+  #   expose:
+  #     - 8000
+  #   networks:
+  #     web:
+  #   depends_on:
+  #     - db
+  #     - broker
+
+  # web-server:
+  #   container_name: "${PROJECT_NAME}-web-server"
+  #   hostname: "${PROJECT_NAME}-web-server"
+  #   restart: unless-stopped
+  #   command: nginx
+  #   environment:
+  #     HTTP_PROXY: ${HTTP_PROXY}
+  #   build:
+  #     dockerfile: ./DockerFiles/nginx.dockerfile
+  #     context: .
+  #   volumes:
+  #     # Nginx
+  #     - ./volumes/server/log:/var/log/nginx:rw # Log
+  #     - ./volumes/server/nginx.conf:/etc/nginx/nginx.conf:ro # nginx configuration
+  #     - ./volumes/server/default.conf:/etc/nginx/conf.d/default.conf:ro # default configuration
+  #     - ./volumes/server/GeoIP:/usr/share/GeoIP/:ro # GeoIP
+  
+  #     # React
+  #     - ./frontend/build/:/usr/share/nginx/html/sciencehub.ir:ro # Frontend
+
+  #     # Django
+  #     - static-files:/usr/share/nginx/html/static:ro # Static
+  #     - media-files:/usr/share/nginx/html/media:ro # Media
+
+  #     # Certbot
+  #     - certbot-www:/var/www/certbot/:ro # Certificate
+  #     - certbot-letsencrypt:/etc/nginx/ssl/:ro # Certificate
+
+  #   networks:
+  #     web:
+  #   depends_on:
+  #     - backend
+  #     - frontend
+  #   ports:
+  #     - 80:80
+  #     - 443:443
+  #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 6h & wait $${!}; nginx -s reload; done;'"
+
+  # certbot:
+  #   command: certbot certonly --webroot -w /var/www/certbot --force-renewal --email ${CERTBOT_EMAIL} -d ${DOMINS} --agree-tos --non-interactive
+  #   image: certbot/certbot:latest
+  #   container_name: "${PROJECT_NAME}-certbot"
+  #   hostname: "${PROJECT_NAME}-certbot"
+  #   environment:
+  #     CERTBOT_EMAIL: ${CERTBOT_EMAIL}
+  #     DOMINS: ${DOMINS}
+  #   volumes:
+  #     - certbot-www:/var/www/certbot/:rw
+  #     - certbot-letsencrypt:/etc/letsencrypt/:rw
+  #     - ./volumes/certbot/log/:/var/log/letsencrypt/:rw
+  #   networks:
+  #     web:
+  #   depends_on:
+  #     - web-server
+  #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+
+
+  # frontend:
+  #   container_name: "${PROJECT_NAME}-frontend"
+  #   hostname: "${PROJECT_NAME}-frontend"
+  #   restart: unless-stopped
+  #   environment:
+  #     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD : ${PUPPETEER_SKIP_CHROMIUM_DOWNLOAD}
+  #     HTTP_PROXY: ${HTTP_PROXY}
+  #     BROWSER: ${BROWSER}
+  #   tty: true
+  #   build:
+  #     dockerfile: ./DockerFiles/node.dockerfile
+  #     context: .
+  #   volumes:
+  #     - ./frontend:/app:rw
+  #   networks:
+  #     web:
+  #   expose:
+  #     - 3000
+
+
+networks:
+  web:
+    name: "${PROJECT_NAME}-network"
+
+
+# volumes:
+#   static-files:
+#   media-files:
+#   certbot-letsencrypt:
+#   certbot-www:
+
+
